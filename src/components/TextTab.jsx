@@ -18,7 +18,7 @@ export function TextTab({ faceIndex }) {
   const handleUpdate = (entryId, updates) => {
     updateTextEntry(faceIndex, entryId, updates)
     if (applyToAll && !('text' in updates)) {
-      applyTextStyleToAllFaces(faceIndex)
+      applyTextStyleToAllFaces(faceIndex, entryId)
     }
   }
 

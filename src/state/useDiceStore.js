@@ -10,7 +10,8 @@ import { D12_NUMBERS } from '../geometry/D12Geometry.js'
 let _nextId = 1
 const uid = () => String(_nextId++)
 
-const DEFAULT_SIZES = { d2: 20, d4: 22, d6: 18, d8: 18, d10: 20, 'd%': 20, d12: 22, d20: 25 }
+const DEFAULT_SIZES = { d2: 20, d4: 22, d6: 18, d8: 18, d10: 25, 'd%': 25, d12: 22, d20: 25 }
+const DEFAULT_D10_RADIUS = 12.5
 
 function getNumbers(diceType) {
   if (diceType === 'd2')  return D2_NUMBERS
@@ -25,9 +26,7 @@ function getNumbers(diceType) {
 
 function makeDefaultFace(index, numbers, diceType) {
   const num = numbers[index]
-  const underline = (diceType === 'd%')
-    ? (num === 60 || num === 90)
-    : ['d10', 'd12', 'd20'].includes(diceType) && (num === 6 || num === 9)
+  const underline = diceType === 'd10' && (num === 6 || num === 9)
   const text = (diceType === 'd%' && num === 0) ? '00' : String(num)
   return {
     index,
@@ -127,7 +126,7 @@ export const useDiceStore = create((set, get) => ({
       d2Sides: null,
       d2Height: null,
       d8Height: null,
-      d10Radius: null,
+      d10Radius: (type === 'd10' || type === 'd%') ? DEFAULT_D10_RADIUS : null,
       selectedFaceIndex: null,
       faces: makeDefaultFaces(type, DEFAULT_SIZES[type] ?? 25),
     }
@@ -291,17 +290,21 @@ export const useDiceStore = create((set, get) => ({
 
   setActiveFontIndex: (i) => set({ activeFontIndex: i }),
 
-  applyTextStyleToAllFaces: (sourceFaceIndex) => set(state => {
-    const source = state.faces[sourceFaceIndex]?.texts[0]
+  applyTextStyleToAllFaces: (sourceFaceIndex, sourceEntryId) => set(state => {
+    const sourceFace = state.faces[sourceFaceIndex]
+    const source = sourceEntryId
+      ? sourceFace?.texts.find(t => t.id === sourceEntryId)
+      : sourceFace?.texts[0]
     if (!source) return {}
-    const { size, depth, mode, fontIndex, x, y, rot } = source
-    const faces = state.faces.map((face, fi) => {
-      if (fi === sourceFaceIndex) return face
-      return {
-        ...face,
-        texts: face.texts.map(entry => ({ ...entry, size, depth, mode, fontIndex, x, y, rot })),
-      }
-    })
+    // Copy style properties only — x, y, rot are per-entry positional values and must
+    // not be overwritten (critical for D4 where each entry is placed at a specific vertex).
+    const { size, depth, mode, fontIndex, decorator, decoratorSize } = source
+    const faces = state.faces.map(face => ({
+      ...face,
+      texts: face.texts.map(entry =>
+        entry.id === sourceEntryId ? entry : { ...entry, size, depth, mode, fontIndex, decorator, decoratorSize }
+      ),
+    }))
     return { faces }
   }),
 

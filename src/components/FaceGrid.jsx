@@ -16,20 +16,37 @@ export function FaceGrid({ onFocusFace }) {
   const selectedFaceIndex = useDiceStore(s => s.selectedFaceIndex)
   const setSelectedFace = useDiceStore(s => s.setSelectedFace)
 
-  // Sort by the current numeric value of the first text entry
+  // Build a combined sorted label from all text entries on a face
+  const getFaceLabel = (face) => {
+    if (!face.texts.length) return ''
+    if (face.texts.length === 1) return face.texts[0].text
+    const nums = face.texts
+      .map(t => parseFloat(t.text))
+      .filter(n => !isNaN(n))
+      .sort((a, b) => a - b)
+    return nums.length === face.texts.length
+      ? nums.join(',')
+      : face.texts.map(t => t.text).sort().join(',')
+  }
+
+  // Sort by the lowest numeric value among the face's text entries
   const sorted = useMemo(() =>
     faces
-      .map((face, fi) => ({ face, fi, num: parseInt(face.texts[0]?.text) || 0 }))
-      .sort((a, b) => a.num - b.num),
+      .map((face, fi) => {
+        const nums = face.texts.map(t => parseFloat(t.text)).filter(n => !isNaN(n))
+        const sortKey = nums.length ? Math.min(...nums) : 0
+        return { face, fi, sortKey }
+      })
+      .sort((a, b) => a.sortKey - b.sortKey),
     [faces]
   )
 
   return (
     <div className="face-grid">
       {sorted.map(({ face, fi }) => {
-        const textLabel = face.texts[0]?.text || ''
+        const textLabel = getFaceLabel(face)
         const svg = face.svgs[0]?.svgData
-        const hasCustomContent = face.texts.length > 1 || face.svgs.length > 0
+        const hasCustomContent = face.svgs.length > 0
 
         return (
           <button
@@ -45,7 +62,7 @@ export function FaceGrid({ onFocusFace }) {
                 className="face-btn-svg"
               />
             ) : (
-              textLabel.length > 3 ? textLabel.slice(0, 3) : textLabel
+              textLabel.length > 5 ? textLabel.slice(0, 5) : textLabel
             )}
           </button>
         )

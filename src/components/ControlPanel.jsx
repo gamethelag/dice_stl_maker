@@ -180,7 +180,9 @@ export function ControlPanel({ onFocusFace, onSaveDice }) {
           <h3 className="section-title">Layout Preset</h3>
           <div className="preset-row">
             <button className="btn-preset" onClick={() => applyNumberLayout(DEFAULT_NUMBERS[diceType])}>Default</button>
-            <button className="btn-preset" onClick={() => applyNumberLayout(SPINDOWN_BY_TYPE[diceType])}>Spindown</button>
+            {diceType !== 'd2' && diceType !== 'd4' && (
+              <button className="btn-preset" onClick={() => applyNumberLayout(SPINDOWN_BY_TYPE[diceType])}>Spindown</button>
+            )}
           </div>
         </section>
 
