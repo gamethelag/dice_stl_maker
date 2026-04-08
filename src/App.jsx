@@ -66,21 +66,21 @@ export default function App() {
 
   // Auto-load all bundled fonts on startup
   useEffect(() => {
+    // Only list fonts whose files in public/fonts/ are genuine TTF/OTF binaries.
+    // Fonts downloaded from Google Fonts via the web API arrive as WOFF2 and must
+    // be replaced with the desktop (TTF) versions from fonts.google.com → Download family.
+    // Currently broken (WOFF2 in repo, need TTF): Cinzel, Oswald, Permanent Marker,
+    //   Roboto Condensed — removed from list until replaced.
     const BUNDLED_FONTS = [
-      { name: 'Arial',                 file: 'arial.ttf' },
-      { name: 'Cinzel Regular',        file: 'Cinzel-Regular.ttf' },
-      { name: 'Cinzel Bold',           file: 'Cinzel-Bold.ttf' },
-      { name: 'Bebas Neue',            file: 'BebasNeue-Regular.ttf' },
-      { name: 'Medieval Sharp',        file: 'MedievalSharp.ttf' },
-      { name: 'Almendra Regular',      file: 'Almendra-Regular.ttf' },
-      { name: 'Almendra Bold',         file: 'Almendra-Bold.ttf' },
-      { name: 'Pirata One',            file: 'PirataOne-Regular.ttf' },
-      { name: 'Oswald Bold',           file: 'Oswald-Bold.ttf' },
-      { name: 'Permanent Marker',      file: 'PermanentMarker-Regular.ttf' },
-      { name: 'Roboto Condensed Bold', file: 'RobotoCondensed-Bold.ttf' },
+      { name: 'Arial',           file: 'arial.ttf' },
+      { name: 'Bebas Neue',      file: 'BebasNeue-Regular.ttf' },
+      { name: 'Medieval Sharp',  file: 'MedievalSharp.ttf' },
+      { name: 'Almendra Regular',file: 'Almendra-Regular.ttf' },
+      { name: 'Almendra Bold',   file: 'Almendra-Bold.ttf' },
+      { name: 'Pirata One',      file: 'PirataOne-Regular.ttf' },
     ]
     for (const { name, file } of BUNDLED_FONTS) {
-      fetch(`/fonts/${file}`)
+      fetch(`${import.meta.env.BASE_URL}fonts/${file}`)
         .then(r => r.arrayBuffer())
         .then(buf => {
           const font = opentype.parse(buf)

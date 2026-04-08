@@ -13,6 +13,7 @@ export function TextTab({ faceIndex }) {
   const applyTextStyleToAllFaces = useDiceStore(s => s.applyTextStyleToAllFaces)
   const fontInputRef = useRef(null)
   const [applyToAll, setApplyToAll] = useState(true)
+  const [fontError, setFontError] = useState(null)
 
   const handleUpdate = (entryId, updates) => {
     updateTextEntry(faceIndex, entryId, updates)
@@ -23,12 +24,18 @@ export function TextTab({ faceIndex }) {
 
   const handleFontFile = async (file) => {
     if (!file) return
+    setFontError(null)
     try {
       const buf = await file.arrayBuffer()
+      // Detect WOFF/WOFF2 by their 4-byte signature before handing to opentype.js
+      const sig = new DataView(buf).getUint32(0, false)
+      if (sig === 0x774F4646) { setFontError(`"${file.name}" is WOFF format. Please upload a TTF or OTF file instead.`); return }
+      if (sig === 0x774F4632) { setFontError(`"${file.name}" is WOFF2 format. Please upload a TTF or OTF file instead. Download the desktop (TTF) version from fonts.google.com.`); return }
       const font = opentype.parse(buf)
       addFont({ name: file.name.replace(/\.[^.]+$/, ''), data: buf, font, userUploaded: true })
     } catch (e) {
-      console.warn('Font load failed:', e)
+      console.error('Font load failed:', e)
+      setFontError(`Could not load "${file.name}": ${e.message ?? e}`)
     }
   }
 
@@ -47,6 +54,10 @@ export function TextTab({ faceIndex }) {
         style={{ display: 'none' }}
         onChange={e => handleFontFile(e.target.files[0])}
       />
+
+      {fontError && (
+        <div className="font-error">{fontError}</div>
+      )}
 
       <button
         className={`btn-apply-all${applyToAll ? ' active' : ''}`}

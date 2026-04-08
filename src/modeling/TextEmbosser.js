@@ -117,29 +117,48 @@ export function buildTextShape(face, entry, fontObj) {
   const cx = (bbox.x1 + bbox.x2) / 2
   const cy = (bbox.y1 + bbox.y2) / 2
 
-  const outerShapes = []
-  const holeShapes = []
+  // Determine winding convention from geometry, not font metadata.
+  // The contour with the largest absolute area must be an outer shape (no glyph starts
+  // with a hole). Its sign after Y-flip tells us the convention for this font:
+  //   area < 0  →  TTF-style (CW outer in screen space)
+  //   area > 0  →  CFF-style (CCW outer in screen space)
+  // This avoids relying on font.outlinesFormat or tables which can be absent/wrong.
 
+  // First pass: compute signed areas for all contours and find the largest.
+  const contourData = []
   for (const contour of contours) {
     if (contour.points.length < 3) continue
-    // Y-flip (negate Y): opentype/SVG uses Y-down; JSCAD 2D uses Y-up.
-    // Flipping ensures the digit top maps to positive Y (toward face apex).
-    // The flip reverses winding: outer contours (CCW before) become CW (area < 0) after.
     const pts = contour.points.map(([px, py]) => [px - cx, -(py - cy)])
     const cleaned = dedupe(pts)
     if (cleaned.length < 3) continue
-
-    // After Y-flip: outer contours are CW (area < 0), holes are CCW (area > 0).
     let area = 0
     for (let i = 0; i < cleaned.length; i++) {
       const [x0, y0] = cleaned[i]
       const [x1, y1] = cleaned[(i + 1) % cleaned.length]
       area += x0 * y1 - x1 * y0
     }
-    const isOuter = area < 0  // CW after flip = outer contour
+    contourData.push({ cleaned, area })
+  }
 
-    // geom2.fromPoints expects CCW — reverse outer contours, holes are already CCW
-    const finalPts = isOuter ? [...cleaned].reverse() : cleaned
+  if (!contourData.length) return null
+
+  // The largest absolute area belongs to an outer contour — its sign is the outer sign.
+  const outerSign = Math.sign(
+    contourData.reduce((best, c) => Math.abs(c.area) > Math.abs(best.area) ? c : best).area
+  )
+
+  const outerShapes = []
+  const holeShapes = []
+
+  for (const { cleaned, area } of contourData) {
+    const isOuter = Math.sign(area) === outerSign
+    // geom2.fromPoints requires CCW winding. After Y-flip:
+    //   TTF outer → CW (area < 0) → reverse to CCW
+    //   TTF hole  → CCW (area > 0) → keep
+    //   CFF outer → CCW (area > 0) → keep   ← reversing here was the bug
+    //   CFF hole  → CW  (area < 0) → reverse to CCW
+    // So always normalize to CCW based on sign of area, independently of outer/hole.
+    const finalPts = area > 0 ? cleaned : [...cleaned].reverse()
     try {
       const g2 = geom2.fromPoints(finalPts)
       const ext = extrudeLinear({ height: depth + 0.2 }, g2)

@@ -440,9 +440,15 @@ export class ThreeScene {
   }
 
   getThumbnail(size = 128) {
+    const src = this.renderer.domElement
+    const sw = src.width, sh = src.height
+    // Centre-crop to a square so the thumbnail isn't stretched
+    const sq = Math.min(sw, sh)
+    const sx = Math.floor((sw - sq) / 2)
+    const sy = Math.floor((sh - sq) / 2)
     const c = document.createElement('canvas')
     c.width = size; c.height = size
-    c.getContext('2d').drawImage(this.renderer.domElement, 0, 0, size, size)
+    c.getContext('2d').drawImage(src, sx, sy, sq, sq, 0, 0, size, size)
     return c.toDataURL('image/png')
   }
 
