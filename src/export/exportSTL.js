@@ -9,6 +9,7 @@ import { buildD10Solid } from '../modeling/buildD10Solid.js'
 import { buildD12Solid } from '../modeling/buildD12Solid.js'
 import { buildTextShape } from '../modeling/TextEmbosser.js'
 import { buildSVGShape } from '../modeling/SVGEmbosser.js'
+import { buildSupportSolid } from '../modeling/supports/buildAllSupports.js'
 import { computeFaceDescriptors } from '../geometry/D20Geometry.js'
 import { computeD2FaceDescriptors } from '../geometry/D2Geometry.js'
 import { computeD4FaceDescriptors } from '../geometry/D4Geometry.js'
@@ -39,7 +40,7 @@ function buildSolid(diceType, sizeInMM, d2Sides, d2Height, d8Height, d10Radius) 
   return buildD20Solid(sizeInMM)
 }
 
-export async function exportDiceSTL({ faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius, filename }) {
+export async function exportDiceSTL({ faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius, filename, supportsEnabled, supportSettings, pinLocations }) {
   let solid = buildSolid(diceType, sizeInMM, d2Sides, d2Height, d8Height, d10Radius)
   console.log('[STL] blank polygons:', jscad.geometries.geom3.toPolygons(solid).length)
 
@@ -89,6 +90,16 @@ export async function exportDiceSTL({ faceDescriptors, faces, loadedFonts, sizeI
   for (let i = 0; i < embossShapes.length; i++) {
     try { solid = union(solid, embossShapes[i]) }
     catch (e) { console.warn(`[STL] union failed shape ${i}:`, e) }
+  }
+
+  // Union support structures into solid before export
+  if (supportsEnabled && supportSettings) {
+    try {
+      const supportSolid = buildSupportSolid(faceDescriptors, supportSettings, pinLocations ?? [])
+      if (supportSolid) solid = union(solid, supportSolid)
+    } catch (e) {
+      console.warn('[STL] support union failed:', e)
+    }
   }
 
   console.log('[STL] final polygons:', jscad.geometries.geom3.toPolygons(solid).length)

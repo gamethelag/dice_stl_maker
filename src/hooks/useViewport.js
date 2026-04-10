@@ -1,9 +1,10 @@
 import { useRef, useEffect, useCallback } from 'react'
 import { ThreeScene } from '../viewport/ThreeScene.js'
 
-export function useViewport({ faceDescriptors, classificationDescriptors, onFaceClick }) {
+export function useViewport({ faceDescriptors, classificationDescriptors, onFaceClick, onPinPlace, pinMode }) {
   const canvasRef = useRef(null)
   const sceneRef = useRef(null)
+  const pinModeRef = useRef(false)
 
   // Create scene on mount
   useEffect(() => {
@@ -22,14 +23,23 @@ export function useViewport({ faceDescriptors, classificationDescriptors, onFace
     sceneRef.current.setDie(faceDescriptors, classificationDescriptors)
   }, [faceDescriptors, classificationDescriptors])
 
-  // Wire face click callback
+  // Keep pin mode ref in sync so the click callback can read it without re-registering
+  useEffect(() => { pinModeRef.current = pinMode }, [pinMode])
+
+  // Wire face click callback — single registration, reads pinModeRef at call time
   useEffect(() => {
     if (!sceneRef.current) return
-    sceneRef.current.onFaceClick(onFaceClick)
-  }, [onFaceClick])
+    sceneRef.current.onFaceClick((fi, u, v) => {
+      if (pinModeRef.current) {
+        onPinPlace?.(fi, u, v)
+        return false  // signal to ThreeScene: suppress camera focus
+      }
+      onFaceClick(fi)
+    })
+  }, [onFaceClick, onPinPlace])
 
-  const updateSolidMesh = useCallback((jscadGeom) => {
-    sceneRef.current?.updateSolidMesh(jscadGeom)
+  const updateSolidMesh = useCallback((jscadGeom, supportGeom = null) => {
+    sceneRef.current?.updateSolidMesh(jscadGeom, supportGeom)
   }, [])
 
   const updateFaceTextures = useCallback((fi, colorCanvas, bumpCanvas) => {

@@ -26,6 +26,11 @@ export default function App() {
   const addFont = useDiceStore(s => s.addFont)
   const dieColor     = useDiceStore(s => s.dieColor)
   const engraveColor = useDiceStore(s => s.engraveColor)
+  const supportsEnabled  = useDiceStore(s => s.supportsEnabled)
+  const supportSettings  = useDiceStore(s => s.supportSettings)
+  const pinLocations     = useDiceStore(s => s.pinLocations)
+  const pinMode          = useDiceStore(s => s.pinMode)
+  const addPin           = useDiceStore(s => s.addPin)
   const [isExporting, setIsExporting] = useState(false)
 
   const { faceDescriptors, classificationDescriptors } = useDiceFaces(sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius)
@@ -37,10 +42,16 @@ export default function App() {
 
   const saveDiceToLibrary = useDiceStore(s => s.saveDiceToLibrary)
 
+  const handlePinPlace = useCallback((faceIndex, u, v) => {
+    addPin({ faceIndex, u, v })
+  }, [addPin])
+
   const { canvasRef, updateSolidMesh, updateFaceTextures, highlightFace, focusFace, resetView, setGridVisible, setAxesVisible, toggleBanana, getThumbnail, setColors } = useViewport({
     faceDescriptors,
     classificationDescriptors,
     onFaceClick: handleFaceClick,
+    onPinPlace: handlePinPlace,
+    pinMode,
   })
 
   useEffect(() => { setColors(dieColor, engraveColor) }, [dieColor, engraveColor, setColors])
@@ -62,6 +73,9 @@ export default function App() {
     d8Height,
     d10Radius,
     updateSolidMesh,
+    supportsEnabled,
+    supportSettings,
+    pinLocations,
   })
 
   // Auto-load all bundled fonts on startup
@@ -94,7 +108,7 @@ export default function App() {
     if (isBuilding || isExporting) return
     setIsExporting(true)
     try {
-      await exportDiceSTL({ faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius })
+      await exportDiceSTL({ faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d10Radius, d8Height, supportsEnabled, supportSettings, pinLocations })
     } catch (e) {
       console.error('Export failed:', e)
     } finally {

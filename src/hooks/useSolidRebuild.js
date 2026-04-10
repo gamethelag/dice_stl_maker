@@ -9,6 +9,7 @@ import { buildD10Solid } from '../modeling/buildD10Solid.js'
 import { buildD12Solid } from '../modeling/buildD12Solid.js'
 import { buildTextShape } from '../modeling/TextEmbosser.js'
 import { buildSVGShape } from '../modeling/SVGEmbosser.js'
+import { buildSupportSolid } from '../modeling/supports/buildAllSupports.js'
 
 const { subtract, union } = jscad.booleans
 
@@ -22,7 +23,7 @@ function buildSolid(diceType, sizeInMM, d2Sides, d2Height, d8Height, d10Radius) 
   return buildD20Solid(sizeInMM)
 }
 
-export function useSolidRebuild({ faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius, updateSolidMesh }) {
+export function useSolidRebuild({ faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius, updateSolidMesh, supportsEnabled, supportSettings, pinLocations }) {
   const [isBuilding, setIsBuilding] = useState(false)
   const timerRef = useRef(null)
   const genRef = useRef(0)
@@ -83,8 +84,19 @@ export function useSolidRebuild({ faceDescriptors, faces, loadedFonts, sizeInMM,
           catch (e) { console.warn(`[rebuild] union failed shape ${i}:`, e) }
         }
 
+        // Build support solid separately — no CSG union here, just a separate geom3.
+        // This avoids an expensive boolean op in the preview loop.
+        let supportSolid = null
+        if (supportsEnabled && supportSettings) {
+          try {
+            supportSolid = buildSupportSolid(faceDescriptors, supportSettings, pinLocations ?? [])
+          } catch (e) {
+            console.warn('[rebuild] support solid failed:', e)
+          }
+        }
+
         if (gen === genRef.current) {
-          updateSolidMesh(solid)
+          updateSolidMesh(solid, supportSolid)
         }
       } catch (e) {
         console.error('[rebuild] failed:', e)
@@ -94,7 +106,7 @@ export function useSolidRebuild({ faceDescriptors, faces, loadedFonts, sizeInMM,
     }, 500)
 
     return () => clearTimeout(timerRef.current)
-  }, [faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [faceDescriptors, faces, loadedFonts, sizeInMM, diceType, d2Sides, d2Height, d8Height, d10Radius, supportsEnabled, supportSettings, pinLocations]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return { isBuilding }
 }

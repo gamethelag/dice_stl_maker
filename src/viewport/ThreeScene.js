@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { createDiceMesh, createEdgesMesh, jscadToThreeGeometry } from './DiceMeshBuilder.js'
+import { createDiceMesh, createEdgesMesh, jscadToThreeGeometry, buildSimpleThreeGeometry } from './DiceMeshBuilder.js'
 import { FacePicker } from './FacePicker.js'
 
 export class ThreeScene {
@@ -21,6 +21,7 @@ export class ThreeScene {
     this._camTargetUp = null
     this._faceOverlay = null
     this._banana = null
+    this._supportMeshObj = null
     this._dieColor = 0xFF8826
     this._engraveColor = 0x3a2a18
 
@@ -217,10 +218,11 @@ export class ThreeScene {
   }
 
   _handleClick(event) {
-    const { faceIndex } = this.picker.pick(event)
+    const { faceIndex, u, v } = this.picker.pick(event)
     if (faceIndex >= 0) {
-      if (this._onFaceClick) this._onFaceClick(faceIndex)
-      this.focusFace(this._faces[faceIndex])
+      // Callback returns false to suppress camera focus (used in pin placement mode)
+      const result = this._onFaceClick ? this._onFaceClick(faceIndex, u, v) : undefined
+      if (result !== false) this.focusFace(this._faces[faceIndex])
     }
   }
 
@@ -240,6 +242,7 @@ export class ThreeScene {
     if (this._diceMeshObj) { this.scene.remove(this._diceMeshObj); this._diceMeshObj = null }
     if (this._solidMesh) { this.scene.remove(this._solidMesh); this._solidMesh = null }
     if (this._edgesMesh) { this.scene.remove(this._edgesMesh); this._edgesMesh = null }
+    if (this._supportMeshObj) { this.scene.remove(this._supportMeshObj); this._supportMeshObj.geometry?.dispose(); this._supportMeshObj.material?.dispose(); this._supportMeshObj = null }
     this._updateHighlightOverlay(-1)
 
     this._faces = faces
@@ -280,7 +283,7 @@ export class ThreeScene {
     this._camTargetUp  = new THREE.Vector3(...face.vBasis)
   }
 
-  updateSolidMesh(jscadGeom) {
+  updateSolidMesh(jscadGeom, supportGeom = null) {
     if (this._solidMesh) {
       this.scene.remove(this._solidMesh)
       this._solidMesh.geometry?.dispose()
@@ -303,6 +306,29 @@ export class ThreeScene {
     // Hide the textured mesh once the JSCAD solid is ready
     if (this._diceMeshObj) {
       this._diceMeshObj.visible = false
+    }
+
+    // Support mesh — separate object rendered in semi-transparent grey
+    if (this._supportMeshObj) {
+      this.scene.remove(this._supportMeshObj)
+      this._supportMeshObj.geometry?.dispose()
+      this._supportMeshObj.material?.dispose()
+      this._supportMeshObj = null
+    }
+    if (supportGeom) {
+      const supportGeo = buildSimpleThreeGeometry(supportGeom)
+      supportGeo.computeVertexNormals()
+      const supportMat = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+        roughness: 0.6,
+        metalness: 0.1,
+        side: THREE.DoubleSide,
+      })
+      this._supportMeshObj = new THREE.Mesh(supportGeo, supportMat)
+      this.scene.add(this._supportMeshObj)
     }
   }
 

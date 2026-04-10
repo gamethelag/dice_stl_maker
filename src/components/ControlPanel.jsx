@@ -2,6 +2,7 @@ import { useDiceStore } from '../state/useDiceStore.js'
 import { RangeRow } from './RangeRow.jsx'
 import { FaceGrid } from './FaceGrid.jsx'
 import { DiceLibrary } from './DiceLibrary.jsx'
+import { SupportsPanel } from './SupportsPanel.jsx'
 import { SIZE_EDGE_FACTOR, SIZE_HEIGHT_FACTOR, D20_NUMBERS, SPINDOWN_NUMBERS } from '../geometry/D20Geometry.js'
 import { D2_NUMBERS, D2_SPINDOWN, D2_DEFAULT_SIDES, D2_DEFAULT_HEIGHT } from '../geometry/D2Geometry.js'
 import { D4_NUMBERS, D4_SPINDOWN, D4_HEIGHT_FACTOR } from '../geometry/D4Geometry.js'
@@ -205,6 +206,8 @@ export function ControlPanel({ onFocusFace, onSaveDice }) {
           </div>
           <FaceGrid onFocusFace={onFocusFace} />
         </section>
+
+        <SupportsPanel />
 
         <section className="panel-section">
           <h3 className="section-title">Library</h3>

@@ -3,6 +3,28 @@ import * as jscad from '@jscad/modeling'
 
 const { geom3, poly3 } = jscad.geometries
 
+/**
+ * Convert a JSCAD geom3 to a plain THREE.BufferGeometry (no material groups).
+ * Used for support structures which don't need outer/inner classification.
+ */
+export function buildSimpleThreeGeometry(jscadGeom) {
+  const polygons = geom3.toPolygons(jscadGeom)
+  const pos = [], norm = []
+  for (const polygon of polygons) {
+    const verts = poly3.toPoints(polygon)
+    const n = poly3.plane(polygon).slice(0, 3)
+    for (let i = 1; i < verts.length - 1; i++) {
+      pos.push(...verts[0], ...verts[i], ...verts[i + 1])
+      norm.push(...n, ...n, ...n)
+    }
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+  geo.setAttribute('normal',   new THREE.Float32BufferAttribute(norm, 3))
+  geo.computeBoundingSphere()
+  return geo
+}
+
 export function jscadToThreeGeometry(jscadGeom, faceDescriptors) {
   const polygons = geom3.toPolygons(jscadGeom)
 

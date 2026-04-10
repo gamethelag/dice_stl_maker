@@ -106,6 +106,9 @@ function persistLibrary(list) {
   try { localStorage.setItem('openDice_library', JSON.stringify(list)) } catch {}
 }
 
+let _nextPinId = 1
+const pinUid = () => String(_nextPinId++)
+
 export const useDiceStore = create((set, get) => ({
   diceType: 'd20',
   sizeInMM: 25,
@@ -120,6 +123,16 @@ export const useDiceStore = create((set, get) => ({
   diceLibrary: loadLibrary(), // named saves with thumbnails
   dieColor: '#FF8826',
   engraveColor: '#3a2a18',
+
+  // --- Print supports ---
+  supportsEnabled: false,
+  supportSettings: {
+    fins:    { enabled: false, contactOffset: 0.3, contactThickness: 0.3, armAngle: 45, armLength: 1.5 },
+    bumpers: { enabled: false, radius: 0.6 },
+    pins:    { enabled: false, radius: 0.35, height: 2.5 },
+  },
+  pinLocations: [],  // [{ id, faceIndex, u, v }]
+  pinMode: false,
 
   // Switch dice type: reset to default faces and size
   setDiceType: (type) => set(state => {
@@ -318,6 +331,28 @@ export const useDiceStore = create((set, get) => ({
     faces: makeDefaultFaces(state.diceType, state.sizeInMM),
     selectedFaceIndex: null,
   })),
+
+  // --- Support actions ---
+  setSupportsEnabled: (enabled) => set({ supportsEnabled: enabled }),
+
+  updateSupportSetting: (category, key, value) => set(state => ({
+    supportSettings: {
+      ...state.supportSettings,
+      [category]: { ...state.supportSettings[category], [key]: value },
+    },
+  })),
+
+  addPin: ({ faceIndex, u, v }) => set(state => ({
+    pinLocations: [...state.pinLocations, { id: pinUid(), faceIndex, u, v }],
+  })),
+
+  removePin: (id) => set(state => ({
+    pinLocations: state.pinLocations.filter(p => p.id !== id),
+  })),
+
+  clearPins: () => set({ pinLocations: [] }),
+
+  setPinMode: (active) => set({ pinMode: active }),
 
   applyNumberLayout: (numbers) => set(state => {
     const faces = state.faces.map((face, fi) => {
