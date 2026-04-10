@@ -2,7 +2,7 @@
 
 A browser-based tool for designing and exporting 3D-printable dice. Customize each face with engraved or embossed text and SVG artwork, preview in real time, then download a print-ready STL.
 
-**Live app:** [gamethelag.github.io/dice_stl_maker](https://gamethelag.github.io/dice_stl_maker/)
+**Live app:** [gamethelag.github.io/OpenDice](https://gamethelag.github.io/OpenDice/)
 
 ---
 
@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173/dice_stl_maker/](http://localhost:5173/dice_stl_maker/) in your browser.
+Open [http://localhost:5173/OpenDice/](http://localhost:5173/OpenDice/) in your browser.
 
 ### Build for production
 
